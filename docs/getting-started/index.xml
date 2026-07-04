@@ -1,0 +1,28 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Getting Started</title><link>/docs/getting-started/</link><description>Recent content in Getting Started on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/getting-started/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Introduction</title><link>/docs/getting-started/introduction/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/introduction/</guid><description>
+&lt;p>Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters. The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.&lt;/p>
+&lt;img alt="fcs logo" height="200" src="/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+&lt;p>Crane is a &lt;a href="https://www.finops.org/members/finops-certified-solution/">FinOps Certified Solution&lt;/a> project of the &lt;a href="https://www.finops.org/">FinOps Foundation&lt;/a>.&lt;/p>
+&lt;p>&lt;strong>How to start a Cost-Saving journey on Crane?&lt;/strong>&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>Understanding&lt;/strong>: Cost insight for cloud assets and kubernetes resources(Deployments, StatefulSets).&lt;/li>
+&lt;li>&lt;strong>Analytics&lt;/strong>: Periodically analytics the states in cluster and provide optimization recommendations.&lt;/li>
+&lt;li>&lt;strong>Optimization&lt;/strong>: Rich set of functionalities to operate and reduce your cost.&lt;/li>
+&lt;/ol>
+&lt;iframe src="https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4"
+scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="1000" height="600">&lt;/iframe>
+&lt;p>&lt;strong>Live Demo&lt;/strong> for Crane Dashboard: &lt;a href="http://dashboard.gocrane.io/">http://dashboard.gocrane.io/&lt;/a>&lt;/p>
+&lt;h2 id="main-features">Main Features&lt;/h2>
+&lt;p>&lt;img src="/images/crane-overview.png" alt="Crane Overview&amp;quot;">&lt;/p>
+&lt;p>&lt;strong>Cost Visualization and Optimization Evaluation&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>Provides a collection of exporters which collect cloud resource pricing and billing data and ship to your monitoring system like Prometheus.&lt;/li>
+&lt;li>Multi-dimensional cost insight, optimization evaluates are supported. Support Multi-cloud Pricing through &lt;code>Cloud Provider&lt;/code>。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Recommendation Framework&lt;/strong>&lt;/p>
+&lt;p>Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas/HPA, Idle Resources. &lt;a href="/docs/tutorials/recommendation">learn more&lt;/a>.&lt;/p>
+&lt;p>&lt;strong>Prediction-driven Horizontal Autoscaling&lt;/strong>&lt;/p>
+&lt;p>EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully. &lt;a href="/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">learn more&lt;/a>.&lt;/p>
+&lt;p>&lt;strong>Load-Aware Scheduling&lt;/strong>&lt;/p>
+&lt;p>Provide a simple but efficient scheduler that schedule pods based on actual node utilization data，and filters out those nodes with high load to balance the cluster. &lt;a href="/docs/tutorials/scheduling-pods-based-on-actual-node-load">learn more&lt;/a>.&lt;/p>
+&lt;p>&lt;strong>Colocation with Enhanced QOS&lt;/strong>&lt;/p>
+&lt;p>QOS-related capabilities ensure the running stability of Pods on Kubernetes. It has the ability of interference detection and active avoidance under the condition of multi-dimensional metrics, and supports reasonable operation and custom metrics access; it has the ability to oversell elastic resources enhanced by the prediction algorithm, reuse and limit the idle resources in the cluster; it has the enhanced bypass cpuset Management capabilities, improve resource utilization efficiency while binding cores. &lt;a href="/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance">learn more&lt;/a>.&lt;/p></description></item><item><title>Docs: Installation</title><link>/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/installation/</guid><description/></item></channel></rss>
