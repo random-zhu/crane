@@ -39,7 +39,7 @@ func InitGrpcConnection(endPoints []string) (*grpc.ClientConn, error) {
 			if idx == (len - 1) {
 				return nil, errMsg
 			}
-			klog.Warningf(errMsg.Error())
+			klog.Warning(errMsg.Error())
 		} else {
 			klog.V(2).Infof("Connected successfully using endpoint: %s", v)
 			break

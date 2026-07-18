@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	analysisv1alpha1 "github.com/gocrane/api/analysis/v1alpha1"
@@ -129,33 +130,34 @@ func (c *RecommendationTriggerController) SetupWithManager(mgr ctrl.Manager) err
 	}
 
 	// Watch for changes to Recommendation that runNumber decrease
-	return controller.Watch(&source.Kind{Type: &analysisv1alpha1.Recommendation{}}, &recommendationEventHandler{
-		enqueueHandler: handler.EnqueueRequestForObject{},
-	})
+	eventHandler := &recommendationEventHandler{
+		enqueueHandler: handler.TypedEnqueueRequestForObject[*analysisv1alpha1.Recommendation]{},
+	}
+	return controller.Watch(source.Kind(mgr.GetCache(), &analysisv1alpha1.Recommendation{}, eventHandler))
 }
 
 type recommendationEventHandler struct {
-	enqueueHandler handler.EnqueueRequestForObject
+	enqueueHandler handler.TypedEnqueueRequestForObject[*analysisv1alpha1.Recommendation]
 }
 
-func (h *recommendationEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (h *recommendationEventHandler) Create(context.Context, event.TypedCreateEvent[*analysisv1alpha1.Recommendation], workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 }
 
-func (h *recommendationEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (h *recommendationEventHandler) Delete(context.Context, event.TypedDeleteEvent[*analysisv1alpha1.Recommendation], workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 }
 
-func (h *recommendationEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	newRecommendation := evt.ObjectNew.(*analysisv1alpha1.Recommendation)
-	oldRecommendation := evt.ObjectOld.(*analysisv1alpha1.Recommendation)
+func (h *recommendationEventHandler) Update(ctx context.Context, evt event.TypedUpdateEvent[*analysisv1alpha1.Recommendation], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	newRecommendation := evt.ObjectNew
+	oldRecommendation := evt.ObjectOld
 	klog.V(6).Infof("recommendation %s OnUpdate", klog.KObj(newRecommendation))
 
 	oldRunNumber, _ := utils.GetRunNumber(oldRecommendation)
 	newRunNumber, _ := utils.GetRunNumber(newRecommendation)
 	if oldRunNumber > newRunNumber {
 		// only handle this condition: the new runNumber is lower than old runNumber
-		h.enqueueHandler.Update(evt, q)
+		h.enqueueHandler.Update(ctx, evt, q)
 	}
 }
 
-func (h *recommendationEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (h *recommendationEventHandler) Generic(context.Context, event.TypedGenericEvent[*analysisv1alpha1.Recommendation], workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 }

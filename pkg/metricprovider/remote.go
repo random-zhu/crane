@@ -235,7 +235,7 @@ func (r *RemoteAdapter) ListAllExternalMetrics() []provider.ExternalMetricInfo {
 	var externalMetricInfos []provider.ExternalMetricInfo
 	resources, err := r.discoveryClient.ServerResourcesForGroupVersion(externalMetricsAPI.SchemeGroupVersion.String())
 	if err != nil {
-		klog.Errorf("Failed to get external metric resources for %r: %v", externalMetricsAPI.SchemeGroupVersion, err)
+		klog.Errorf("Failed to get external metric resources for %v: %v", externalMetricsAPI.SchemeGroupVersion, err)
 		return nil
 	}
 	for _, r := range resources.APIResources {

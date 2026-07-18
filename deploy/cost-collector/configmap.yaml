@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crane-cost-collector
+  namespace: crane-cost-system
+data:
+  config.json: |-
+    {
+      "listenAddress": ":8080",
+      "dataFile": "/var/lib/crane-cost/ledger.json",
+      "apiTokenFile": "/var/run/secrets/crane-cost/api/token",
+      "pullInterval": "6h",
+      "lookbackDays": 7,
+      "maxPages": 1000,
+      "providers": [
+        {
+          "name": "aliyun",
+          "accountId": "REPLACE_WITH_ALIYUN_PAYER_ACCOUNT",
+          "credentialFileDirectory": "/var/run/secrets/crane-cost/aliyun"
+        },
+        {
+          "name": "volcengine",
+          "accountId": "REPLACE_WITH_VOLCENGINE_PAYER_ACCOUNT",
+          "region": "cn-north-1",
+          "credentialFileDirectory": "/var/run/secrets/crane-cost/volcengine"
+        },
+        {
+          "name": "huawei",
+          "accountId": "REPLACE_WITH_HUAWEI_PAYER_ACCOUNT",
+          "credentialFileDirectory": "/var/run/secrets/crane-cost/huawei"
+        },
+        {
+          "name": "tencent",
+          "accountId": "REPLACE_WITH_TENCENT_PAYER_ACCOUNT",
+          "credentialFileDirectory": "/var/run/secrets/crane-cost/tencent"
+        }
+      ],
+      "resourceMappings": [],
+      "nodeRates": []
+    }

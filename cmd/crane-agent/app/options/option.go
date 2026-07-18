@@ -1,10 +1,14 @@
 package options
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
+	"sigs.k8s.io/yaml"
 
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 )
@@ -47,19 +51,65 @@ func NewOptions() *Options {
 
 // Complete completes all the required options.
 func (o *Options) Complete() error {
+	if o.CgroupDriver != "auto" {
+		return nil
+	}
+
+	driver, err := resolveCgroupDriver(o.KubeletRootPath, o.SysPath)
+	if err != nil {
+		return err
+	}
+	o.CgroupDriver = driver
 	return nil
 }
 
 // Validate all required options.
 func (o *Options) Validate() error {
-	return nil
+	switch o.CgroupDriver {
+	case "cgroupfs", "systemd":
+		return nil
+	default:
+		return fmt.Errorf("unsupported cgroup driver %q: expected auto, cgroupfs, or systemd", o.CgroupDriver)
+	}
+}
+
+type kubeletConfig struct {
+	CgroupDriver string `json:"cgroupDriver"`
+}
+
+func resolveCgroupDriver(kubeletRootPath, sysPath string) (string, error) {
+	configPath := filepath.Join(kubeletRootPath, "config.yaml")
+	if data, err := os.ReadFile(configPath); err == nil {
+		var config kubeletConfig
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			return "", fmt.Errorf("parse kubelet config %s: %w", configPath, err)
+		}
+		switch config.CgroupDriver {
+		case "cgroupfs", "systemd":
+			return config.CgroupDriver, nil
+		case "":
+			// Fall back to the host cgroup hierarchy when the field is omitted.
+		default:
+			return "", fmt.Errorf("unsupported cgroup driver %q in %s", config.CgroupDriver, configPath)
+		}
+	} else if !os.IsNotExist(err) && !os.IsPermission(err) {
+		return "", fmt.Errorf("read kubelet config %s: %w", configPath, err)
+	}
+
+	if _, err := os.Stat(filepath.Join(sysPath, "fs", "cgroup", "cgroup.controllers")); err == nil {
+		return "systemd", nil
+	} else if !os.IsNotExist(err) && !os.IsPermission(err) {
+		return "", fmt.Errorf("detect cgroup v2 hierarchy: %w", err)
+	}
+
+	return "cgroupfs", nil
 }
 
 // AddFlags adds flags to the specified FlagSet.
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.HostnameOverride, "hostname-override", "", "Which is the name of k8s node be used to filtered.")
-	flags.StringVar(&o.RuntimeEndpoint, "runtime-endpoint", "", "The runtime endpoint docker: unix:///var/run/dockershim.sock, containerd: unix:///run/containerd/containerd.sock, cri-o: unix:///run/crio/crio.sock, k3s: unix:///run/k3s/containerd/containerd.sock.")
-	flags.StringVar(&o.CgroupDriver, "cgroup-driver", "cgroupfs", "Driver that the kubelet uses to manipulate cgroups on the host.  Possible values: 'cgroupfs', 'systemd'. Default to 'cgroupfs'")
+	flags.StringVar(&o.RuntimeEndpoint, "runtime-endpoint", "", "CRI v1 runtime endpoint. Auto-detection checks containerd, CRI-O, and k3s sockets when empty.")
+	flags.StringVar(&o.CgroupDriver, "cgroup-driver", "auto", "Driver that the kubelet uses to manipulate cgroups on the host. Possible values: 'auto', 'cgroupfs', 'systemd'. Auto reads the kubelet config and otherwise detects cgroup v2.")
 	flags.StringVar(&o.SysPath, "sys-path", "/sys", "Path to /sys dir.")
 	flags.StringVar(&o.KubeletRootPath, "kubelet-root-path", "/var/lib/kubelet", "Path to the kubelet root directory.")
 	flags.Bool("enable-profiling", false, "Is debug/pprof endpoint enabled, default: false")

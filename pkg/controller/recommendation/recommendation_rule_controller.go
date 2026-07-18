@@ -121,7 +121,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 	if err != nil {
 		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get idenitities, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
-		klog.Errorf(msg)
+		klog.Error(msg)
 		updateRecommendationRuleStatus(ctx, c.Client, c.Recorder, recommendationRule, newStatus)
 		return false
 	}
@@ -140,7 +140,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 	if err != nil {
 		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get recomendations, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
-		klog.Errorf(msg)
+		klog.Error(msg)
 		updateRecommendationRuleStatus(ctx, c.Client, c.Recorder, recommendationRule, newStatus)
 		return false
 	}

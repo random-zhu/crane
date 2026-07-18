@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -47,12 +47,12 @@ func ListPodSandboxes(client pb.RuntimeServiceClient, opts ListOptions) ([]*pb.P
 	request := &pb.ListPodSandboxRequest{
 		Filter: filter,
 	}
-	klog.V(6).Info("ListPodSandboxRequest: %v", request)
+	klog.V(6).Infof("ListPodSandboxRequest: %v", request)
 	r, err := client.ListPodSandbox(context.Background(), request)
 	if err != nil {
 		return []*pb.PodSandbox{}, err
 	}
-	klog.V(6).Info("ListPodSandboxResponse: %v", r)
+	klog.V(6).Infof("ListPodSandboxResponse: %v", r)
 
 	r.Items = filterSandboxesList(r.GetItems(), opts)
 	return r.Items, nil

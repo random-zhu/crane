@@ -7,7 +7,7 @@ import (
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	"github.com/gocrane/crane/pkg/known"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 )
 
 func IsEHPAPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
@@ -16,7 +16,7 @@ func IsEHPAPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscal
 
 func IsEHPAHasPredictionMetric(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
 	for _, metric := range ehpa.Spec.Metrics {
-		metricName := GetPredictionMetricName(metric.Type)
+		metricName := GetPredictionMetricName(autoscalingv2.MetricSourceType(metric.Type))
 		if len(metricName) == 0 {
 			continue
 		}

@@ -19,10 +19,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
-	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
-	kubeletcpumanager "k8s.io/kubernetes/pkg/kubelet/cm/cpumanager"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
-	"k8s.io/kubernetes/pkg/kubelet/stats/pidlimit"
+	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
+	"k8s.io/utils/cpuset"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
@@ -93,7 +91,7 @@ func (n *NodeResourceTopology) Stop() error {
 	return nil
 }
 
-func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfiginternal.KubeletConfiguration,
+func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration,
 	node *corev1.Node) (*topologyapi.NodeResourceTopology, error) {
 	topo, err := ghw.Topology(ghw.WithPathOverrides(ghw.PathOverrides{
 		"/sys": sysPath,
@@ -118,7 +116,7 @@ func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfiginter
 
 	cpuManagerPolicy := topologyapi.CPUManagerPolicyStatic
 	// If kubelet cpumanager policy is static, we should set the agent cpu manager policy to none.
-	if kubeletConfig.CPUManagerPolicy == string(kubeletcpumanager.PolicyStatic) {
+	if kubeletConfig.CPUManagerPolicy == "static" {
 		cpuManagerPolicy = topologyapi.CPUManagerPolicyNone
 	}
 
@@ -176,7 +174,7 @@ func parseResourceList(m map[string]string) (corev1.ResourceList, error) {
 	for k, v := range m {
 		switch corev1.ResourceName(k) {
 		// CPU, memory, local storage, and PID resources are supported.
-		case corev1.ResourceCPU, corev1.ResourceMemory, corev1.ResourceEphemeralStorage, pidlimit.PIDs:
+		case corev1.ResourceCPU, corev1.ResourceMemory, corev1.ResourceEphemeralStorage, corev1.ResourceName("pid"):
 			q, err := apiresource.ParseQuantity(v)
 			if err != nil {
 				return nil, err
@@ -207,7 +205,7 @@ func getNumReservedCPUs(nodeAllocatableReservation corev1.ResourceList) int {
 
 // parseReservedSystemCPUs will parse kubelet ReservedSystemCPUs and overwrite the cpus in KubeReserved and SystemReserved
 // copy code from: https://github.com/kubernetes/kubernetes/blob/master/cmd/kubelet/app/server.go#L671
-func parseReservedSystemCPUs(kubeletConfig *kubeletconfiginternal.KubeletConfiguration) (cpuset.CPUSet, error) {
+func parseReservedSystemCPUs(kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration) (cpuset.CPUSet, error) {
 	reservedSystemCPUs, err := utils.GetReservedCPUs(kubeletConfig.ReservedSystemCPUs)
 	if err != nil {
 		return reservedSystemCPUs, fmt.Errorf("parse reserved cpus: %v", err)

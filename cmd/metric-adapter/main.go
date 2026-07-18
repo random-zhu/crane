@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/component-base/logs"
@@ -122,7 +123,11 @@ func main() {
 		klog.Exit(err, "Unable to create discover client")
 	}
 
-	restMapper, err := apiutil.NewDynamicRESTMapper(config)
+	httpClient, err := rest.HTTPClientFor(config)
+	if err != nil {
+		klog.Exit(err, "Unable to create Kubernetes HTTP client")
+	}
+	restMapper, err := apiutil.NewDynamicRESTMapper(config, httpClient)
 	if err != nil {
 		klog.Exit(err, "Unable to create rest mapper")
 	}
@@ -148,8 +153,8 @@ func main() {
 	cmd.WithCustomMetrics(customMetricProvider)
 	cmd.WithExternalMetrics(externalMetricProvider)
 
-	klog.Infof(cmd.Message)
-	if err := cmd.Run(ctx.Done()); err != nil {
+	klog.Info(cmd.Message)
+	if err := cmd.Run(ctx); err != nil {
 		klog.ErrorS(err, "Failed to run metrics adapter")
 		os.Exit(1)
 	}

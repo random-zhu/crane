@@ -11,7 +11,7 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/load"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
@@ -86,7 +86,7 @@ func collectCPU(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSer
 	usagePercent := calculateBusy(nodeState.latestCpuState.stat, currentCpuState.stat)
 	usageCore := usagePercent * float64(nodeState.cpuCoreNumbers) * 1000 / types.MaxPercentage
 
-	cpuSet := cpuset.NewCPUSet()
+	cpuSet := cpuset.New()
 	if nodeLocalContext.exclusiveCPUSet != nil {
 		cpuSet = nodeLocalContext.exclusiveCPUSet()
 	}

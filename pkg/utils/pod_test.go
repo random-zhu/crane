@@ -156,3 +156,29 @@ func TestCalculatePodTemplateRequests(t *testing.T) {
 	}
 
 }
+
+func TestStaticAndCriticalPodSemantics(t *testing.T) {
+	priority := int32(2_000_000_000)
+	tests := []struct {
+		name     string
+		pod      *v1.Pod
+		static   bool
+		critical bool
+	}{
+		{name: "nil", pod: nil},
+		{name: "API pod", pod: &v1.Pod{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"kubernetes.io/config.source": "api"}}}},
+		{name: "file static pod", pod: &v1.Pod{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"kubernetes.io/config.source": "file"}}}, static: true, critical: true},
+		{name: "empty mirror hash", pod: &v1.Pod{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{v1.MirrorPodAnnotationKey: ""}}}, critical: true},
+		{name: "system critical priority", pod: &v1.Pod{Spec: v1.PodSpec{Priority: &priority}}, critical: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsStaticPod(tt.pod); got != tt.static {
+				t.Errorf("IsStaticPod() = %v, want %v", got, tt.static)
+			}
+			if got := IsCriticalPod(tt.pod); got != tt.critical {
+				t.Errorf("IsCriticalPod() = %v, want %v", got, tt.critical)
+			}
+		})
+	}
+}

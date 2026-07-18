@@ -14,8 +14,6 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
-	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
-	kubeletscheme "k8s.io/kubernetes/pkg/kubelet/apis/config/scheme"
 
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 )
@@ -179,7 +177,7 @@ func BuildZoneName(nodeID int) string {
 	return fmt.Sprintf("node%d", nodeID)
 }
 
-func GetKubeletConfig(ctx context.Context, c kubeclient.Interface, hostname string) (*kubeletconfiginternal.KubeletConfiguration, error) {
+func GetKubeletConfig(ctx context.Context, c kubeclient.Interface, hostname string) (*kubeletconfigv1beta1.KubeletConfiguration, error) {
 	result, err := c.CoreV1().RESTClient().Get().
 		Resource("nodes").
 		SubResource("proxy").
@@ -202,14 +200,5 @@ func GetKubeletConfig(ctx context.Context, c kubeclient.Interface, hostname stri
 		return nil, fmt.Errorf("failed to unmarshal json for kubelet config: %v", err)
 	}
 
-	scheme, _, err := kubeletscheme.NewSchemeAndCodecs()
-	if err != nil {
-		return nil, err
-	}
-	cfg := kubeletconfiginternal.KubeletConfiguration{}
-	if err = scheme.Convert(&configz.ComponentConfig, &cfg, nil); err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
+	return &configz.ComponentConfig, nil
 }

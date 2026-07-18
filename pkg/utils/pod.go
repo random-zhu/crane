@@ -9,12 +9,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gocrane/crane/pkg/known"
@@ -90,7 +89,7 @@ func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 
 // EvictPodWithGracePeriod evict pod with grace period
 func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds *int32) error {
-	if kubelettypes.IsCriticalPod(pod) {
+	if IsCriticalPod(pod) {
 		return fmt.Errorf("eviction manager: cannot evict a critical pod(%s)", klog.KObj(pod))
 	}
 
@@ -99,7 +98,7 @@ func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePerio
 		grace = int64(*gracePeriodSeconds)
 	}
 
-	e := &policyv1beta1.Eviction{
+	e := &policyv1.Eviction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
@@ -107,7 +106,23 @@ func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePerio
 		DeleteOptions: metav1.NewDeleteOptions(grace),
 	}
 
-	return client.CoreV1().Pods(pod.Namespace).EvictV1beta1(context.Background(), e)
+	return client.CoreV1().Pods(pod.Namespace).EvictV1(context.Background(), e)
+}
+
+// IsCriticalPod mirrors the stable kubelet semantics without importing the
+// Kubernetes monorepo's internal kubelet/types package.
+func IsCriticalPod(pod *v1.Pod) bool {
+	if pod == nil {
+		return false
+	}
+	if source, exists := pod.Annotations["kubernetes.io/config.source"]; exists && source != "api" {
+		return true
+	}
+	if _, mirror := pod.Annotations[v1.MirrorPodAnnotationKey]; mirror {
+		return true
+	}
+	const systemCriticalPriority int32 = 2_000_000_000
+	return pod.Spec.Priority != nil && *pod.Spec.Priority >= systemCriticalPriority
 }
 
 // CalculatePodRequests sum request total from pods. If the containerName is specified, the total amount of requests for that container will be calculated.
@@ -367,7 +382,9 @@ func IsPodTerminated(pod *corev1.Pod) bool {
 }
 
 func IsStaticPod(pod *corev1.Pod) bool {
-	_, isStatic := pod.Annotations[kubelettypes.ConfigSourceAnnotationKey]
-
-	return isStatic
+	if pod == nil {
+		return false
+	}
+	source, exists := pod.Annotations["kubernetes.io/config.source"]
+	return exists && source != "api"
 }

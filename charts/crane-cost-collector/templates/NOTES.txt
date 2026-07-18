@@ -1,0 +1,8 @@
+The read-only Crane multi-cloud cost collector has been installed.
+
+Before expecting readiness, ensure Secret {{ .Values.credentials.existingSecret }}
+contains the credential keys selected in credentials.items and replace every
+placeholder account ID under config.providers.
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "crane-cost-collector.fullname" . }} 8080:{{ .Values.service.port }}
+  curl http://127.0.0.1:8080/healthz

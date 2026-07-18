@@ -37,10 +37,12 @@ spec:
           volumeMounts:
             - mountPath: /sys
               name: sys
+              readOnly: true
             - mountPath: /run
               name: run
             - mountPath: /var/lib/kubelet
               name: kubelet-root-path
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /health-check

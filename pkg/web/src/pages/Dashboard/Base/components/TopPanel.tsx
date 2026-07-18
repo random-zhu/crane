@@ -11,7 +11,7 @@ const TopPanel = () => {
 
   const PANE_LIST: Array<IBoardProps> = [
     {
-      title: t('当月总成本'),
+      title: t('当月预估成本'),
       countPrefix: '¥ ',
       lineColor: '#fff',
       query: `sum (
@@ -22,7 +22,7 @@ const TopPanel = () => {
 
   by (node)) * (${craneDiscount}/100.0)`,
       timeType: TimeType.Range,
-      tips: t('过去一个月集群总成本。从安装Crane时间开始，按小时累加集群成本'),
+      tips: t('按节点小时费率累加的当月预估成本，不代表云厂商实付账单'),
     },
     {
       title: t('预估每月成本'),

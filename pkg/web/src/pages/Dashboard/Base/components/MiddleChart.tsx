@@ -15,14 +15,14 @@ const MiddleChart = () => {
     <Row gutter={[16, 16]} className={Style.middleChartPanel}>
       <Col xs={12} xl={9}>
         <SeriesLineChart
-          title={t('成本走势')}
+          title={t('预估成本走势')}
           subTitle={t('( 元 )')}
           datePicker={true}
           step={'1h'}
-          tips={t('过去一段时间内的成本走势图')}
+          tips={t('按节点费率与资源量计算的预估成本走势，不代表云厂商实付账单')}
           lines={[
             {
-              name: t('总成本'),
+              name: t('预估总成本'),
               query: `(sum(sum_over_time(node:node_total_hourly_cost:avg[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)))
               * (${craneDiscount}/100.0)`,
             },

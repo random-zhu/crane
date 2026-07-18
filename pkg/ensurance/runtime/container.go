@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -168,14 +168,14 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]
 		Filter: filter,
 	}
 
-	klog.V(6).Info("ListContainerRequest: %v", request)
+	klog.V(6).Infof("ListContainerRequest: %v", request)
 
 	r, err := runtimeClient.ListContainers(context.Background(), request)
 	if err != nil {
 		return []*pb.Container{}, err
 	}
 
-	klog.V(10).Info("ListContainerResponse: %v", r)
+	klog.V(10).Infof("ListContainerResponse: %v", r)
 
 	r.Containers = filterContainersList(r.GetContainers(), opts)
 

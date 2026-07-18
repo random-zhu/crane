@@ -10,7 +10,7 @@ import (
 	"github.com/jaypipes/ghw/pkg/topology"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 	"k8s.io/utils/pointer"
 )
 
@@ -35,8 +35,8 @@ func Test_getNodeAllocatable(t *testing.T) {
 				reserved: map[v1.ResourceName]resource.Quantity{
 					v1.ResourceCPU: resource.MustParse("2"),
 				},
-				systemReservedCPUs: cpuset.NewCPUSet(1, 2),
-				nodeReservedCPUs:   cpuset.NewCPUSet(1),
+				systemReservedCPUs: cpuset.New(1, 2),
+				nodeReservedCPUs:   cpuset.New(1),
 			},
 			want: resource.MustParse("3"),
 		},
@@ -49,8 +49,8 @@ func Test_getNodeAllocatable(t *testing.T) {
 				reserved: map[v1.ResourceName]resource.Quantity{
 					v1.ResourceCPU: resource.MustParse("2"),
 				},
-				systemReservedCPUs: cpuset.NewCPUSet(),
-				nodeReservedCPUs:   cpuset.NewCPUSet(),
+				systemReservedCPUs: cpuset.New(),
+				nodeReservedCPUs:   cpuset.New(),
 			},
 			want: resource.MustParse("2"),
 		},
@@ -63,8 +63,8 @@ func Test_getNodeAllocatable(t *testing.T) {
 				reserved: map[v1.ResourceName]resource.Quantity{
 					v1.ResourceCPU: resource.MustParse("5"),
 				},
-				systemReservedCPUs: cpuset.NewCPUSet(1, 2, 3, 4, 5),
-				nodeReservedCPUs:   cpuset.NewCPUSet(1, 2, 3, 4, 5),
+				systemReservedCPUs: cpuset.New(1, 2, 3, 4, 5),
+				nodeReservedCPUs:   cpuset.New(1, 2, 3, 4, 5),
 			},
 			want: resource.MustParse("0"),
 		},
@@ -137,7 +137,7 @@ func TestNRTBuilder_buildZoneScopeFields(t *testing.T) {
 				},
 				reservedCPUs:       2,
 				topologyInfo:       buildTopologyInfo(2, 4, 2),
-				systemReservedCPUs: cpuset.NewCPUSet(0, 9),
+				systemReservedCPUs: cpuset.New(0, 9),
 			},
 			args: args{
 				nrt: &topologyapi.NodeResourceTopology{},

@@ -24,10 +24,13 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/gocrane/crane/pkg/ensurance/config"
+	analyticswebhook "github.com/gocrane/crane/pkg/webhooks/analytics"
 	"github.com/gocrane/crane/pkg/webhooks/autoscaling"
 	"github.com/gocrane/crane/pkg/webhooks/ensurance"
 	"github.com/gocrane/crane/pkg/webhooks/pod"
@@ -38,9 +41,8 @@ import (
 func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceEnabled, clusterNodePredictionEnabled, analysisEnabled, timeseriespredictEnabled, qosInitializer bool, qosConfigPath string) error {
 	if timeseriespredictEnabled {
 		tspValidationAdmission := prediction.ValidationAdmission{}
-		err := ctrl.NewWebhookManagedBy(mgr).
-			For(&predictionapi.TimeSeriesPrediction{}).
-			WithValidator(&tspValidationAdmission).
+		err := ctrl.NewWebhookManagedBy(mgr, &predictionapi.TimeSeriesPrediction{}).
+			WithCustomValidator(newValidatorAdapter(&tspValidationAdmission)).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup tsp webhook: %v", err)
@@ -50,19 +52,17 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 
 	if analysisEnabled {
 		recomendValidationAdmission := recommendation.ValidationAdmission{}
-		err := ctrl.NewWebhookManagedBy(mgr).
-			For(&analysisapi.Recommendation{}).
-			WithValidator(&recomendValidationAdmission).
+		err := ctrl.NewWebhookManagedBy(mgr, &analysisapi.Recommendation{}).
+			WithCustomValidator(newValidatorAdapter(&recomendValidationAdmission)).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup recommendation webhook: %v", err)
 			return err
 		}
 
-		analyticsValidationAdmission := recommendation.ValidationAdmission{}
-		err = ctrl.NewWebhookManagedBy(mgr).
-			For(&analysisapi.Analytics{}).
-			WithValidator(&analyticsValidationAdmission).
+		analyticsValidationAdmission := analyticswebhook.ValidationAdmission{}
+		err = ctrl.NewWebhookManagedBy(mgr, &analysisapi.Analytics{}).
+			WithCustomValidator(newValidatorAdapter(&analyticsValidationAdmission)).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup analytics webhook: %v", err)
@@ -72,9 +72,8 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 
 	if nodeResourceEnabled || clusterNodePredictionEnabled {
 		nodeQOSValidationAdmission := ensurance.NodeQOSValidationAdmission{}
-		err := ctrl.NewWebhookManagedBy(mgr).
-			For(&ensuranceapi.NodeQOS{}).
-			WithValidator(&nodeQOSValidationAdmission).
+		err := ctrl.NewWebhookManagedBy(mgr, &ensuranceapi.NodeQOS{}).
+			WithCustomValidator(newValidatorAdapter(&nodeQOSValidationAdmission)).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup NodeQOS webhook: %v", err)
@@ -82,9 +81,8 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 		}
 
 		actionValidationAdmission := ensurance.ActionValidationAdmission{}
-		err = ctrl.NewWebhookManagedBy(mgr).
-			For(&ensuranceapi.AvoidanceAction{}).
-			WithValidator(&actionValidationAdmission).
+		err = ctrl.NewWebhookManagedBy(mgr, &ensuranceapi.AvoidanceAction{}).
+			WithCustomValidator(newValidatorAdapter(&actionValidationAdmission)).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup AvoidanceAction webhook: %v", err)
@@ -94,9 +92,8 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 
 	if autoscalingEnabled {
 		autoscalingValidationAdmission := autoscaling.ValidationAdmission{}
-		err := ctrl.NewWebhookManagedBy(mgr).
-			For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
-			WithValidator(&autoscalingValidationAdmission).
+		err := ctrl.NewWebhookManagedBy(mgr, &autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
+			WithCustomValidator(newValidatorAdapter(&autoscalingValidationAdmission)).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup autoscaling webhook: %v", err)
@@ -111,9 +108,8 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 		}
 
 		podMutatingAdmission := pod.NewMutatingAdmission(qosConfig, BuildPodQosListFunction(mgr))
-		err = ctrl.NewWebhookManagedBy(mgr).
-			For(&corev1.Pod{}).
-			WithDefaulter(podMutatingAdmission).
+		err = ctrl.NewWebhookManagedBy(mgr, &corev1.Pod{}).
+			WithCustomDefaulter(podMutatingAdmission).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup qos initializer webhook: %v", err)
@@ -122,6 +118,32 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 	}
 
 	return nil
+}
+
+type legacyValidator interface {
+	ValidateCreate(context.Context, runtime.Object) error
+	ValidateUpdate(context.Context, runtime.Object, runtime.Object) error
+	ValidateDelete(context.Context, runtime.Object) error
+}
+
+type validatorAdapter struct {
+	delegate legacyValidator
+}
+
+func newValidatorAdapter(delegate legacyValidator) *validatorAdapter {
+	return &validatorAdapter{delegate: delegate}
+}
+
+func (v *validatorAdapter) ValidateCreate(ctx context.Context, object runtime.Object) (admission.Warnings, error) {
+	return nil, v.delegate.ValidateCreate(ctx, object)
+}
+
+func (v *validatorAdapter) ValidateUpdate(ctx context.Context, oldObject, newObject runtime.Object) (admission.Warnings, error) {
+	return nil, v.delegate.ValidateUpdate(ctx, oldObject, newObject)
+}
+
+func (v *validatorAdapter) ValidateDelete(ctx context.Context, object runtime.Object) (admission.Warnings, error) {
+	return nil, v.delegate.ValidateDelete(ctx, object)
 }
 
 func BuildPodQosListFunction(mgr ctrl.Manager) func() ([]*ensuranceapi.PodQOS, error) {

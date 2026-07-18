@@ -3,13 +3,13 @@ package noderesourcetopology
 import (
 	"testing"
 
-	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
+	"k8s.io/utils/cpuset"
 )
 
 func Test_parseReservedSystemCPUs(t *testing.T) {
 	type args struct {
-		kubeletConfig *kubeletconfiginternal.KubeletConfiguration
+		kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration
 	}
 	tests := []struct {
 		name                   string
@@ -23,7 +23,7 @@ func Test_parseReservedSystemCPUs(t *testing.T) {
 			args: args{
 				kubeletConfig: newKubeletConfig(nil, nil, "2-3"),
 			},
-			want:    cpuset.NewCPUSet(2, 3),
+			want:    cpuset.New(2, 3),
 			wantErr: false,
 		},
 	}
@@ -42,8 +42,8 @@ func Test_parseReservedSystemCPUs(t *testing.T) {
 }
 
 func newKubeletConfig(systemReserved, kubeReserved map[string]string,
-	reservedSystemCPUs string) *kubeletconfiginternal.KubeletConfiguration {
-	return &kubeletconfiginternal.KubeletConfiguration{
+	reservedSystemCPUs string) *kubeletconfigv1beta1.KubeletConfiguration {
+	return &kubeletconfigv1beta1.KubeletConfiguration{
 		SystemReserved:     systemReserved,
 		KubeReserved:       kubeReserved,
 		ReservedSystemCPUs: reservedSystemCPUs,

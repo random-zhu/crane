@@ -44,17 +44,17 @@ func (fpa *FakePromAPI) DeleteSeries(ctx gocontext.Context, matches []string, st
 func (fpa *FakePromAPI) Flags(ctx gocontext.Context) (promapiv1.FlagsResult, error) {
 	return promapiv1.FlagsResult{}, nil
 }
-func (fpa *FakePromAPI) LabelNames(ctx gocontext.Context, matches []string, startTime time.Time, endTime time.Time) ([]string, promapiv1.Warnings, error) {
+func (fpa *FakePromAPI) LabelNames(ctx gocontext.Context, matches []string, startTime time.Time, endTime time.Time, _ ...promapiv1.Option) ([]string, promapiv1.Warnings, error) {
 	return []string{}, promapiv1.Warnings{}, nil
 }
-func (fpa *FakePromAPI) LabelValues(ctx gocontext.Context, label string, matches []string, startTime time.Time, endTime time.Time) (model.LabelValues, promapiv1.Warnings, error) {
+func (fpa *FakePromAPI) LabelValues(ctx gocontext.Context, label string, matches []string, startTime time.Time, endTime time.Time, _ ...promapiv1.Option) (model.LabelValues, promapiv1.Warnings, error) {
 	return model.LabelValues{}, promapiv1.Warnings{}, nil
 }
-func (fpa *FakePromAPI) Query(ctx gocontext.Context, query string, ts time.Time) (model.Value, promapiv1.Warnings, error) {
+func (fpa *FakePromAPI) Query(ctx gocontext.Context, query string, ts time.Time, _ ...promapiv1.Option) (model.Value, promapiv1.Warnings, error) {
 	return fpa.queryResult, fpa.warnings, fpa.err
 }
 
-func (fpa *FakePromAPI) QueryRange(ctx gocontext.Context, query string, r promapiv1.Range) (model.Value, promapiv1.Warnings, error) {
+func (fpa *FakePromAPI) QueryRange(ctx gocontext.Context, query string, r promapiv1.Range, _ ...promapiv1.Option) (model.Value, promapiv1.Warnings, error) {
 	return fpa.rangeFunc(ctx, fpa.maxPointsPerSeries, fpa.queryResult, fpa.warnings, query, r)
 }
 
@@ -68,7 +68,7 @@ func (fpa *FakePromAPI) Buildinfo(ctx gocontext.Context) (promapiv1.BuildinfoRes
 func (fpa *FakePromAPI) Runtimeinfo(ctx gocontext.Context) (promapiv1.RuntimeinfoResult, error) {
 	return promapiv1.RuntimeinfoResult{}, nil
 }
-func (fpa *FakePromAPI) Series(ctx gocontext.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, promapiv1.Warnings, error) {
+func (fpa *FakePromAPI) Series(ctx gocontext.Context, matches []string, startTime time.Time, endTime time.Time, _ ...promapiv1.Option) ([]model.LabelSet, promapiv1.Warnings, error) {
 	return []model.LabelSet{}, promapiv1.Warnings{}, nil
 }
 func (fpa *FakePromAPI) Snapshot(ctx gocontext.Context, skipHead bool) (promapiv1.SnapshotResult, error) {
@@ -88,8 +88,12 @@ func (fpa *FakePromAPI) TargetsMetadata(ctx gocontext.Context, matchTarget strin
 func (fpa *FakePromAPI) Metadata(ctx gocontext.Context, metric string, limit string) (map[string][]promapiv1.Metadata, error) {
 	return map[string][]promapiv1.Metadata{}, nil
 }
-func (fpa *FakePromAPI) TSDB(ctx gocontext.Context) (promapiv1.TSDBResult, error) {
+func (fpa *FakePromAPI) TSDB(ctx gocontext.Context, _ ...promapiv1.Option) (promapiv1.TSDBResult, error) {
 	return promapiv1.TSDBResult{}, nil
+}
+
+func (fpa *FakePromAPI) WalReplay(ctx gocontext.Context) (promapiv1.WalReplayStatus, error) {
+	return promapiv1.WalReplayStatus{}, nil
 }
 
 func NewFakeAPI(rangeFunc QueryRangeFunc, tsList []*common.TimeSeries, warnings []string, err error, maxPointsPerSeries int) *FakePromAPI {

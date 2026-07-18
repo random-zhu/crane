@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -144,7 +144,7 @@ func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList,
 		logicalCores += len(core.LogicalProcessors)
 		logicalCoreList = append(logicalCoreList, core.LogicalProcessors...)
 	}
-	logicalCoreSet := cpuset.NewCPUSet(logicalCoreList...)
+	logicalCoreSet := cpuset.New(logicalCoreList...)
 
 	capacity := make(corev1.ResourceList)
 	capacity[corev1.ResourceCPU] = *resource.NewQuantity(int64(logicalCores), resource.DecimalSI)
@@ -153,7 +153,7 @@ func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList,
 	}
 
 	reservedCPUNums := 0
-	nodeReservedCPUs := cpuset.NewCPUSet()
+	nodeReservedCPUs := cpuset.New()
 	// if `systemReservedCPUs` specified, build reserved cpu according to the systemReservedCPUs only
 	if systemReservedCPUs.Size() != 0 {
 		nodeReservedCPUs = logicalCoreSet.Intersection(systemReservedCPUs)

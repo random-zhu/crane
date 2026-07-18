@@ -41,8 +41,8 @@ func (e *OOMResourceEstimator) GetResourceEstimation(evpa *autoscalingapi.Effect
 
 		bumpUpRatio := config[fmt.Sprintf("workload.%s", evpa.Spec.TargetRef.Name)]
 		if bumpUpRatio == "" {
-			memoryNeeded = recommendermodel.ResourceAmountMax(recommendermodel.ResourceAmount(memoryOOM)+recommendermodel.MemoryAmountFromBytes(recommendermodel.OOMMinBumpUp),
-				recommendermodel.ScaleResource(recommendermodel.ResourceAmount(memoryOOM), recommendermodel.OOMBumpUpRatio))
+			memoryNeeded = recommendermodel.ResourceAmountMax(recommendermodel.ResourceAmount(memoryOOM)+recommendermodel.MemoryAmountFromBytes(recommendermodel.DefaultOOMMinBumpUp),
+				recommendermodel.ScaleResource(recommendermodel.ResourceAmount(memoryOOM), recommendermodel.DefaultOOMBumpUpRatio))
 
 		} else {
 			oomBumpUpRatio, err := strconv.ParseFloat(bumpUpRatio, 64)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -55,7 +55,8 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 	newStatus := ehpa.Status.DeepCopy()
 
-	scale, mapping, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
+	scaleTargetRef := utils.CrossVersionObjectReferenceToV2(ehpa.Spec.ScaleTargetRef)
+	scale, mapping, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, scaleTargetRef)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedGetScale", err.Error())
 		klog.Errorf("Failed to get scale, ehpa %s", klog.KObj(ehpa))

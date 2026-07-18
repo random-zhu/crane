@@ -26,6 +26,7 @@ MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/craned:${GIT_VERSION}"
 AGENT_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crane-agent:${GIT_VERSION}"
 ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
 DASHBOARD_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/dashboard:${GIT_VERSION}"
+COST_COLLECTOR_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/cost-collector:${GIT_VERSION}"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -98,10 +99,10 @@ echoLDFLAGS:
 	@echo $(LDFLAGS)
 
 .PHONY: build
-build: craned crane-agent metric-adapter
+build: craned crane-agent metric-adapter cost-collector
 
 .PHONY: all
-all: generate test craned  crane-agent metric-adapter
+all: generate test craned crane-agent metric-adapter cost-collector
 .PHONY: craned
 craned: ## Build binary with the crane manager.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/craned cmd/craned/main.go
@@ -114,8 +115,12 @@ crane-agent: ## Build binary with the crane agent.
 metric-adapter: ## Build binary with the metric adapter.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/metric-adapter cmd/metric-adapter/main.go
 
+.PHONY: cost-collector
+cost-collector: ## Build the multi-cloud read-only cost collector.
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/cost-collector cmd/cost-collector/main.go
+
 .PHONY: images
-images: image-craned image-crane-agent image-metric-adapter image-dashboard
+images: image-craned image-crane-agent image-metric-adapter image-dashboard image-cost-collector
 
 .PHONY: image-craned
 image-craned: ## Build docker image with the crane manager.
@@ -133,8 +138,12 @@ image-crane-agent: ## Build docker image with the crane agent.
 image-metric-adapter: ## Build docker image with the metric adapter.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
 
+.PHONY: image-cost-collector
+image-cost-collector: ## Build docker image with the multi-cloud cost collector.
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=cost-collector -t ${COST_COLLECTOR_IMG} .
+
 .PHONY: push-images
-push-images: push-image-craned push-image-crane-agent push-image-metric-adapter push-image-dashboard
+push-images: push-image-craned push-image-crane-agent push-image-metric-adapter push-image-dashboard push-image-cost-collector
 
 .PHONY: push-image-craned
 push-image-craned: ## Push images.
@@ -163,6 +172,13 @@ ifneq ($(REGISTRY_USER_NAME), "")
 	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
 endif
 	docker push ${ADAPTER_IMG}
+
+.PHONY: push-image-cost-collector
+push-image-cost-collector: ## Push cost collector image.
+ifneq ($(REGISTRY_USER_NAME), "")
+	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
+endif
+	docker push ${COST_COLLECTOR_IMG}
 
 controller-gen:
 ifeq (, $(shell which controller-gen))

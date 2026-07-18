@@ -85,7 +85,7 @@ func (m *estimatorManager) DeleteEstimators(evpa *autoscalingapi.EffectiveVertic
 	for _, estimatorSpec := range evpa.Spec.ResourceEstimators {
 		estimator := m.estimatorMap[estimatorSpec.Type]
 		if estimator == nil {
-			klog.Warning("Delete estimators failed, type %s not found. ", estimatorSpec.Type)
+			klog.Warningf("Delete estimators failed, type %s not found. ", estimatorSpec.Type)
 			return
 		}
 		estimator.DeleteEstimation(evpa)

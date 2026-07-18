@@ -261,7 +261,7 @@ func (rr *ResourceRecommender) MemoryOOMProtection(oomRecords []oom.OOMRecord, n
 		memoryOOM := oomRecord.Memory.Value()
 		var memoryNeeded recommendermodel.ResourceAmount
 
-		memoryNeeded = recommendermodel.ResourceAmountMax(recommendermodel.ResourceAmount(memoryOOM)+recommendermodel.MemoryAmountFromBytes(recommendermodel.OOMMinBumpUp),
+		memoryNeeded = recommendermodel.ResourceAmountMax(recommendermodel.ResourceAmount(memoryOOM)+recommendermodel.MemoryAmountFromBytes(recommendermodel.DefaultOOMMinBumpUp),
 			recommendermodel.ScaleResource(recommendermodel.ResourceAmount(memoryOOM), rr.OOMBumpRatio))
 
 		return resource.NewQuantity(int64(memoryNeeded), resource.BinarySI)

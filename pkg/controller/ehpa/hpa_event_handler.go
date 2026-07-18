@@ -1,37 +1,40 @@
 package ehpa
 
 import (
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	"context"
+
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 type hpaEventHandler struct {
-	enqueueHandler handler.EnqueueRequestForObject
+	enqueueHandler handler.TypedEnqueueRequestForObject[*autoscalingv2.HorizontalPodAutoscaler]
 }
 
-func (h *hpaEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
-	pod := evt.Object.(*autoscalingv2.HorizontalPodAutoscaler)
+func (h *hpaEventHandler) Create(ctx context.Context, evt event.TypedCreateEvent[*autoscalingv2.HorizontalPodAutoscaler], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	pod := evt.Object
 	if pod.DeletionTimestamp != nil {
-		h.Delete(event.DeleteEvent{Object: evt.Object}, q)
+		h.Delete(ctx, event.TypedDeleteEvent[*autoscalingv2.HorizontalPodAutoscaler]{Object: evt.Object}, q)
 		return
 	}
 
-	h.enqueueHandler.Create(evt, q)
+	h.enqueueHandler.Create(ctx, evt, q)
 }
 
-func (h *hpaEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
-	h.enqueueHandler.Delete(evt, q)
+func (h *hpaEventHandler) Delete(ctx context.Context, evt event.TypedDeleteEvent[*autoscalingv2.HorizontalPodAutoscaler], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	h.enqueueHandler.Delete(ctx, evt, q)
 }
 
-func (h *hpaEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	newHpa := evt.ObjectNew.(*autoscalingv2.HorizontalPodAutoscaler)
-	oldHpa := evt.ObjectOld.(*autoscalingv2.HorizontalPodAutoscaler)
+func (h *hpaEventHandler) Update(ctx context.Context, evt event.TypedUpdateEvent[*autoscalingv2.HorizontalPodAutoscaler], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	newHpa := evt.ObjectNew
+	oldHpa := evt.ObjectOld
 	klog.V(6).Infof("hpa %s OnUpdate", klog.KObj(newHpa))
 	if oldHpa.Status.DesiredReplicas != newHpa.Status.DesiredReplicas {
 		for _, cond := range newHpa.Status.Conditions {
@@ -52,8 +55,8 @@ func (h *hpaEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimiting
 			}
 		}
 	}
-	h.enqueueHandler.Update(evt, q)
+	h.enqueueHandler.Update(ctx, evt, q)
 }
 
-func (h *hpaEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (h *hpaEventHandler) Generic(context.Context, event.TypedGenericEvent[*autoscalingv2.HorizontalPodAutoscaler], workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 }

@@ -35,7 +35,7 @@ func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Ob
 		return fmt.Errorf("failed to convert req to Analytics. ")
 	}
 
-	klog.V(4).Info("validate create object %s", klog.KObj(analytics))
+	klog.V(4).Infof("validate create object %s", klog.KObj(analytics))
 	return nil
 }
 

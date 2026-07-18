@@ -7,7 +7,7 @@ import (
 	"k8s.io/klog/v2"
 	cpumanagerstate "k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	cputopo "k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 )
@@ -114,7 +114,7 @@ func (p *staticPolicy) allocateCPUs(
 		return reusableCPUs, nil
 	}
 
-	result := cpuset.NewCPUSet()
+	result := cpuset.New()
 	if len(tr) == 0 {
 		return result, nil
 	}
@@ -217,7 +217,7 @@ func (p *staticPolicy) validateState(s cpumanagerstate.State) error {
 			tmpCPUSets = append(tmpCPUSets, cset)
 		}
 	}
-	totalKnownCPUs = totalKnownCPUs.UnionAll(tmpCPUSets)
+	totalKnownCPUs = totalKnownCPUs.Union(tmpCPUSets...)
 	if !totalKnownCPUs.Equals(p.topology.CPUDetails.CPUs()) {
 		return fmt.Errorf("current set of available CPUs \"%s\" doesn't match with CPUs in state \"%s\"",
 			p.topology.CPUDetails.CPUs().String(), totalKnownCPUs.String())
@@ -232,7 +232,7 @@ func (p *staticPolicy) GetAllocatableCPUs(s cpumanagerstate.State) (cpuset.CPUSe
 	if err != nil {
 		return cpuset.CPUSet{}, fmt.Errorf("failed to get immovable pods, %v", err)
 	}
-	immovableCPUSet := cpuset.NewCPUSet()
+	immovableCPUSet := cpuset.New()
 	for _, pod := range pods {
 		for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
 			if cset, ok := s.GetCPUSet(string(pod.UID), container.Name); ok {
@@ -262,7 +262,7 @@ func (p *staticPolicy) updateCPUsToReuse(pod *corev1.Pod, container *corev1.Cont
 	}
 	// If no cpuset exists for cpusToReuse by this pod yet, create one.
 	if _, ok := p.cpusToReuse[string(pod.UID)]; !ok {
-		p.cpusToReuse[string(pod.UID)] = cpuset.NewCPUSet()
+		p.cpusToReuse[string(pod.UID)] = cpuset.New()
 	}
 	// Add its cpuset to the cpuset of reusable CPUs for any new allocations.
 	for _, c := range pod.Spec.Containers {
@@ -278,7 +278,7 @@ func (p *staticPolicy) takeByTopology(availableCPUs cpuset.CPUSet, numCPUs int) 
 }
 
 func buildReservedCPUSet(topology *cputopo.CPUTopology, tr TopologyResult) (cpuset.CPUSet, error) {
-	res := cpuset.NewCPUSet()
+	res := cpuset.New()
 	for idx, info := range tr {
 		// if reserved system cpus is specified, use it directly
 		if info.ReservedSystemCPUs.Size() != 0 {
@@ -297,7 +297,7 @@ func buildReservedCPUSet(topology *cputopo.CPUTopology, tr TopologyResult) (cpus
 // getAssignedCPUsOfSiblings returns assigned cpus of given container's siblings(all containers other than the given container) in the given pod `podUID`.
 func getAssignedCPUsOfSiblings(s cpumanagerstate.State, podUID string, containerName string) cpuset.CPUSet {
 	assignments := s.GetCPUAssignments()
-	cset := cpuset.NewCPUSet()
+	cset := cpuset.New()
 	for name, cpus := range assignments[podUID] {
 		if containerName == name {
 			continue

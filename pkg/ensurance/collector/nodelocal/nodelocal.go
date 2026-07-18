@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
@@ -77,12 +77,12 @@ func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
 			}
 		} else {
 			if !strings.Contains(err.Error(), types.CollectInitErrorText) {
-				klog.Errorf("Failed to collect node local metrics: %v", name, err)
+				klog.Errorf("Failed to collect node local metric %s: %v", name, err)
 			}
 		}
 	}
 
-	klog.V(6).Info("Node local collecting, status: %#v", status)
+	klog.V(6).Infof("Node local collecting, status: %#v", status)
 
 	return status, nil
 }

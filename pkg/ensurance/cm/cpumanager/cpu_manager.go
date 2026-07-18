@@ -1,6 +1,7 @@
 package cpumanager
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -17,13 +18,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	criapis "k8s.io/cri-api/pkg/apis"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/kubelet/cm/containermap"
 	cpumanagerstate "k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/utils/cpuset"
 
 	topologyinformer "github.com/gocrane/api/pkg/generated/informers/externalversions/topology/v1alpha1"
 	topologylisters "github.com/gocrane/api/pkg/generated/listers/topology/v1alpha1"
@@ -47,7 +48,7 @@ const (
 )
 
 var DefaultExclusiveCPUSet = func() cpuset.CPUSet {
-	return cpuset.NewCPUSet()
+	return cpuset.New()
 }
 
 type CPUManager interface {
@@ -108,7 +109,7 @@ func NewCPUManager(
 	if err != nil {
 		return nil, err
 	}
-	topo, err := topology.Discover(machineInfo)
+	topo, err := topology.Discover(klog.Background(), machineInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func NewCPUManager(
 		nrtSync:          nrtInformer.Informer().HasSynced,
 		defaultCPUPolicy: defaultCPUPolicy,
 		reconcilePeriod:  reconcilePeriod,
-		lastUpdateState:  cpumanagerstate.NewMemoryState(),
+		lastUpdateState:  cpumanagerstate.NewMemoryState(klog.Background()),
 		containerRuntime: containerRuntime,
 		containerMap:     containermap.NewContainerMap(),
 	}
@@ -186,6 +187,7 @@ func NewCPUManager(
 	cm.policy = NewStaticPolicy(topo, getPodFunc)
 
 	cm.state, err = cpumanagerstate.NewCheckpointState(
+		klog.Background(),
 		stateFileDirectory,
 		cpuManagerStateFileName,
 		cm.policy.Name(),
@@ -270,9 +272,10 @@ func (cm *cpuManager) GetSharedCPUs() cpuset.CPUSet {
 
 func (cm *cpuManager) updateContainerCPUSet(containerID string, cpus cpuset.CPUSet) error {
 	return cm.containerRuntime.UpdateContainerResources(
+		context.Background(),
 		containerID,
-		&runtimeapi.LinuxContainerResources{
-			CpusetCpus: cpus.String(),
+		&runtimeapi.ContainerResources{
+			Linux: &runtimeapi.LinuxContainerResources{CpusetCpus: cpus.String()},
 		})
 }
 
@@ -568,13 +571,13 @@ func findRunningContainerStatus(status *corev1.PodStatus, container string) (str
 
 func buildContainerMapFromRuntime(runtimeService criapis.RuntimeService) containermap.ContainerMap {
 	podSandboxMap := make(map[string]string)
-	podSandboxList, _ := runtimeService.ListPodSandbox(nil)
+	podSandboxList, _ := runtimeService.ListPodSandbox(context.Background(), nil)
 	for _, p := range podSandboxList {
 		podSandboxMap[p.Id] = p.Metadata.Uid
 	}
 
 	containerMap := containermap.NewContainerMap()
-	containerList, _ := runtimeService.ListContainers(nil)
+	containerList, _ := runtimeService.ListContainers(context.Background(), nil)
 	for _, c := range containerList {
 		if _, exists := podSandboxMap[c.PodSandboxId]; !exists {
 			klog.InfoS("no PodSandBox found for the container", "podSandboxId", c.PodSandboxId, "containerName", c.Metadata.Name, "containerId", c.Id)

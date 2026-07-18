@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -130,6 +130,10 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 	}
 
 	ctx.Recommendation.Status.RecommendedValue = string(resultBytes)
+	crdMetrics, err := utils.MetricSpecsToV2Beta2(proposedEHPA.Metrics)
+	if err != nil {
+		return err
+	}
 	if ctx.EHPA == nil {
 		ctx.Recommendation.Status.Action = "Create"
 
@@ -145,14 +149,14 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 			Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
 				MinReplicas:   proposedEHPA.MinReplicas,
 				MaxReplicas:   *proposedEHPA.MaxReplicas,
-				Metrics:       proposedEHPA.Metrics,
+				Metrics:       crdMetrics,
 				ScaleStrategy: autoscalingapi.ScaleStrategyPreview,
 				Prediction:    proposedEHPA.Prediction,
-				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				ScaleTargetRef: utils.CrossVersionObjectReferenceToV2Beta2(autoscalingv2.CrossVersionObjectReference{
 					Kind:       ctx.Recommendation.Spec.TargetRef.Kind,
 					APIVersion: ctx.Recommendation.Spec.TargetRef.APIVersion,
 					Name:       ctx.Recommendation.Spec.TargetRef.Name,
-				},
+				}),
 			},
 		}
 
@@ -168,7 +172,7 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 			Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
 				MinReplicas: proposedEHPA.MinReplicas,
 				MaxReplicas: *proposedEHPA.MaxReplicas,
-				Metrics:     proposedEHPA.Metrics,
+				Metrics:     crdMetrics,
 			},
 		}
 

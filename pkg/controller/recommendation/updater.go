@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -110,6 +110,10 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 	// Only support Auto Type for EHPA recommendation
 	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto {
 		if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas && proposedRecommendation.EffectiveHPA != nil {
+			crdMetrics, err := utils.MetricSpecsToV2Beta2(proposedRecommendation.EffectiveHPA.Metrics)
+			if err != nil {
+				return false, err
+			}
 			ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
 				return false, fmt.Errorf("get EHPA from target failed: %v. ", err)
@@ -123,14 +127,14 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 					Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
 						MinReplicas:   proposedRecommendation.EffectiveHPA.MinReplicas,
 						MaxReplicas:   *proposedRecommendation.EffectiveHPA.MaxReplicas,
-						Metrics:       proposedRecommendation.EffectiveHPA.Metrics,
+						Metrics:       crdMetrics,
 						ScaleStrategy: autoscalingapi.ScaleStrategyPreview,
 						Prediction:    proposedRecommendation.EffectiveHPA.Prediction,
-						ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+						ScaleTargetRef: utils.CrossVersionObjectReferenceToV2Beta2(autoscalingv2.CrossVersionObjectReference{
 							Kind:       recommendation.Spec.TargetRef.Kind,
 							APIVersion: recommendation.Spec.TargetRef.APIVersion,
 							Name:       recommendation.Spec.TargetRef.Name,
-						},
+						}),
 					},
 				}
 
@@ -147,7 +151,7 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 				ehpaUpdate := ehpa.DeepCopy()
 				ehpaUpdate.Spec.MinReplicas = proposedRecommendation.EffectiveHPA.MinReplicas
 				ehpaUpdate.Spec.MaxReplicas = *proposedRecommendation.EffectiveHPA.MaxReplicas
-				ehpaUpdate.Spec.Metrics = proposedRecommendation.EffectiveHPA.Metrics
+				ehpaUpdate.Spec.Metrics = crdMetrics
 
 				if !equality.Semantic.DeepEqual(&ehpaUpdate.Spec, &ehpa.Spec) {
 					if err = c.Client.Update(ctx, ehpaUpdate); err != nil {
@@ -193,11 +197,11 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 						UpdatePolicy: &vpatypes.PodUpdatePolicy{
 							UpdateMode: &off,
 						},
-						TargetRef: &autoscalingv2.CrossVersionObjectReference{
+						TargetRef: utils.CrossVersionObjectReferencePointerToV2Beta2(autoscalingv2.CrossVersionObjectReference{
 							Kind:       recommendation.Spec.TargetRef.Kind,
 							APIVersion: recommendation.Spec.TargetRef.APIVersion,
 							Name:       recommendation.Spec.TargetRef.Name,
-						},
+						}),
 					},
 				}
 

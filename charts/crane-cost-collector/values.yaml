@@ -1,0 +1,115 @@
+replicaCount: 1
+
+image:
+  repository: docker.io/gocrane/cost-collector
+  tag: "0.1.0"
+  # Prefer repository@sha256 by setting digest for production releases.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+networkPolicy:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+
+credentials:
+  # Create this Secret with an external secret-management system. The chart
+  # never accepts or renders credential values.
+  existingSecret: crane-cost-credentials
+  items:
+    - key: api_token
+      path: api/token
+    - key: aliyun_access_key_id
+      path: aliyun/access_key_id
+    - key: aliyun_access_key_secret
+      path: aliyun/access_key_secret
+    - key: volcengine_access_key_id
+      path: volcengine/access_key_id
+    - key: volcengine_secret_access_key
+      path: volcengine/secret_access_key
+    - key: huawei_auth_token
+      path: huawei/auth_token
+    - key: tencent_secret_id
+      path: tencent/secret_id
+    - key: tencent_secret_key
+      path: tencent/secret_key
+  optionalItems:
+    - key: aliyun_security_token
+      path: aliyun/security_token
+    - key: volcengine_session_token
+      path: volcengine/session_token
+    - key: tencent_token
+      path: tencent/token
+
+config:
+  listenAddress: :8080
+  dataFile: /var/lib/crane-cost/ledger.json
+  apiTokenFile: /var/run/secrets/crane-cost/api/token
+  pullInterval: 6h
+  lookbackDays: 7
+  maxPages: 1000
+  providers:
+    - name: aliyun
+      accountId: REPLACE_WITH_ALIYUN_PAYER_ACCOUNT
+      credentialFileDirectory: /var/run/secrets/crane-cost/aliyun
+    - name: volcengine
+      accountId: REPLACE_WITH_VOLCENGINE_PAYER_ACCOUNT
+      region: cn-north-1
+      credentialFileDirectory: /var/run/secrets/crane-cost/volcengine
+    - name: huawei
+      accountId: REPLACE_WITH_HUAWEI_PAYER_ACCOUNT
+      credentialFileDirectory: /var/run/secrets/crane-cost/huawei
+    - name: tencent
+      accountId: REPLACE_WITH_TENCENT_PAYER_ACCOUNT
+      credentialFileDirectory: /var/run/secrets/crane-cost/tencent
+  resourceMappings: []
+  nodeRates: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL

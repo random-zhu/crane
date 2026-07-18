@@ -3,12 +3,12 @@ package utils
 import (
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 )
 
 // GetReservedCPUs ...
 func GetReservedCPUs(cpus string) (cpuset.CPUSet, error) {
-	emptyCPUSet := cpuset.NewCPUSet()
+	emptyCPUSet := cpuset.New()
 	if cpus == "" {
 		return emptyCPUSet, nil
 	}

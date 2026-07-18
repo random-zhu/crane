@@ -48,7 +48,8 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, substitute.Namespace, substitute.Spec.SubstituteTargetRef)
+	scaleTargetRef := utils.CrossVersionObjectReferenceToV2(substitute.Spec.SubstituteTargetRef)
+	scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, substitute.Namespace, scaleTargetRef)
 	if err != nil {
 		c.Recorder.Event(substitute, v1.EventTypeWarning, "FailedGetScale", err.Error())
 		klog.Errorf("Failed to get scale, Substitute %s error %v", klog.KObj(substitute), err)

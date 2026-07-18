@@ -1,0 +1,109 @@
+name: Kubernetes compatibility
+
+on:
+  pull_request:
+    paths:
+      - "charts/**"
+      - "deploy/**"
+      - "cmd/cost-collector/**"
+      - "pkg/cost/**"
+      - "Dockerfile"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/kubernetes-compatibility.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  cost-read-only:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kubernetes: "1.34.8"
+            node_image: "kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256"
+          - kubernetes: "1.35.5"
+            node_image: "kindest/node:v1.35.5@sha256:ce977ae6d65918d0b58a5f8b5e940429c2ce42fa3a5619ec2bbc60b949c0ac95"
+          - kubernetes: "1.36.1"
+            node_image: "kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.18.4
+      - name: Install kind
+        env:
+          KIND_VERSION: v0.32.0
+        run: |
+          curl --fail --location --output kind-linux-amd64 "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          curl --fail --location --output kind.sha256sum "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum"
+          sha256sum --check kind.sha256sum
+          chmod +x kind-linux-amd64
+          sudo mv kind-linux-amd64 /usr/local/bin/kind
+      - name: Create Kubernetes ${{ matrix.kubernetes }} cluster
+        run: kind create cluster --name crane --image "${{ matrix.node_image }}" --wait 180s
+      - name: Validate chart for the target API server
+        run: |
+          helm lint charts/crane-cost-collector
+          helm template crane-cost charts/crane-cost-collector --namespace crane-system --kube-version "${{ matrix.kubernetes }}" >/tmp/crane-cost.yaml
+          kubectl create namespace crane-system
+          kubectl label namespace crane-system \
+            pod-security.kubernetes.io/enforce=restricted \
+            pod-security.kubernetes.io/audit=restricted \
+            pod-security.kubernetes.io/warn=restricted
+          kubectl apply --server-side --dry-run=server -f /tmp/crane-cost.yaml
+          kubectl apply --server-side --dry-run=server -f deploy/manifests
+      - name: Build and load the cost collector
+        run: |
+          docker build --build-arg BUILD=CI --build-arg PKGNAME=cost-collector --tag crane/cost-collector:test .
+          kind load docker-image --name crane crane/cost-collector:test
+      - name: Install read-only mode
+        run: |
+          kubectl -n crane-system create secret generic crane-cost-credentials \
+            --from-literal=api_token=test-api-token \
+            --from-literal=aliyun_access_key_id=test \
+            --from-literal=aliyun_access_key_secret=test \
+            --from-literal=volcengine_access_key_id=test \
+            --from-literal=volcengine_secret_access_key=test \
+            --from-literal=huawei_auth_token=test \
+            --from-literal=tencent_secret_id=test \
+            --from-literal=tencent_secret_key=test
+          helm install crane-cost charts/crane-cost-collector \
+            --namespace crane-system \
+            --set image.repository=crane/cost-collector \
+            --set image.tag=test \
+            --set image.pullPolicy=Never
+          kubectl -n crane-system wait \
+            --for=jsonpath='{.status.phase}'=Running \
+            pod -l app.kubernetes.io/name=crane-cost-collector,app.kubernetes.io/instance=crane-cost \
+            --timeout=180s
+      - name: Smoke-test the health endpoint
+        run: |
+          kubectl -n crane-system port-forward svc/crane-cost-crane-cost-collector 18080:8080 >/tmp/port-forward.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/healthz; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/port-forward.log
+          kubectl -n crane-system get all
+          kubectl -n crane-system logs deployment/crane-cost-crane-cost-collector
+          exit 1
+      - name: Verify upgrade and uninstall
+        run: |
+          helm upgrade crane-cost charts/crane-cost-collector \
+            --namespace crane-system \
+            --set image.repository=crane/cost-collector \
+            --set image.tag=test \
+            --set image.pullPolicy=Never
+          helm status crane-cost --namespace crane-system
+          helm uninstall crane-cost --namespace crane-system
+          test -z "$(kubectl -n crane-system get deployment -l app.kubernetes.io/instance=crane-cost -o name)"

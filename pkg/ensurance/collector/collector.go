@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	ensuranceListers "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"

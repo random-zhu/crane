@@ -3,7 +3,7 @@ package ehpa
 import (
 	"context"
 
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -51,7 +51,8 @@ func (c *HPAObserverController) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to HPA
-	return controller.Watch(&source.Kind{Type: &autoscalingv2.HorizontalPodAutoscaler{}}, &hpaEventHandler{
-		enqueueHandler: handler.EnqueueRequestForObject{},
-	})
+	eventHandler := &hpaEventHandler{
+		enqueueHandler: handler.TypedEnqueueRequestForObject[*autoscalingv2.HorizontalPodAutoscaler]{},
+	}
+	return controller.Watch(source.Kind(mgr.GetCache(), &autoscalingv2.HorizontalPodAutoscaler{}, eventHandler))
 }

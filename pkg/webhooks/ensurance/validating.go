@@ -3,7 +3,7 @@ package ensurance
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
+	"context"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	genericvalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -37,7 +37,7 @@ func (p *NodeQOSValidationAdmission) ValidateCreate(ctx context.Context, req run
 	allErrs := genericvalidation.ValidateObjectMeta(&nodeQOS.ObjectMeta, false, genericvalidation.NameIsDNS1035Label, field.NewPath("metadata"))
 
 	if nodeQOS.Spec.Selector != nil {
-		allErrs = append(allErrs, metavalidation.ValidateLabelSelector(nodeQOS.Spec.Selector, field.NewPath("spec").Child("selector"))...)
+		allErrs = append(allErrs, metavalidation.ValidateLabelSelector(nodeQOS.Spec.Selector, metavalidation.LabelSelectorValidationOptions{}, field.NewPath("spec").Child("selector"))...)
 	}
 
 	allErrs = append(allErrs, validateNodeQualityProbe(nodeQOS.Spec.NodeQualityProbe, field.NewPath("nodeQualityProbe"))...)
@@ -170,7 +170,7 @@ func validateMetricRule(rule *ensuranceapi.MetricRule, fldPath *field.Path, http
 	}
 
 	if rule.Selector != nil {
-		allErrs = append(allErrs, metavalidation.ValidateLabelSelector(rule.Selector, fldPath.Child("selector"))...)
+		allErrs = append(allErrs, metavalidation.ValidateLabelSelector(rule.Selector, metavalidation.LabelSelectorValidationOptions{}, fldPath.Child("selector"))...)
 	}
 
 	if rule.Value.Cmp(resource.Quantity{}) <= 0 {

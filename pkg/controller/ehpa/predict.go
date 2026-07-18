@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -130,9 +130,13 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 
 	// get MetricRules
 	mrs := prometheus_adapter.GetMetricRules()
+	metrics, err := utils.MetricSpecsToV2(ehpa.Spec.Metrics)
+	if err != nil {
+		return nil, err
+	}
 
 	var predictionMetrics []predictionapi.PredictionMetric
-	for _, metric := range ehpa.Spec.Metrics {
+	for _, metric := range metrics {
 		metricIdentifier := utils.GetPredictionMetricIdentifier(metric)
 		if metricIdentifier == "" {
 			continue

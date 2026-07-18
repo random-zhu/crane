@@ -72,7 +72,7 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedUpdateRecommendationValue", err.Error())
 		msg := fmt.Sprintf("Failed to update recommendation value, Recommendation %s: %v", klog.KObj(recommendation), err)
-		klog.Errorf(msg)
+		klog.Error(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendationValue", msg)
 		return ctrl.Result{}, c.UpdateStatus(ctx, recommendation, newStatus)
 	}

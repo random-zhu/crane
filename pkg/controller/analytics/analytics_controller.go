@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -55,7 +54,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// convert Analytics to RecommendationRule
 	recommendationRule := ConvertToRecommendationRule(analytics)
 	if err := UpsertRecommendationRule(recommendationRule, c.Client); err != nil {
-		klog.Infof(fmt.Sprintf("Upsert recommendation rule failed: %v", err))
+		klog.Infof("Upsert recommendation rule failed: %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -104,7 +103,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 			msg := fmt.Sprintf("Failed to get idenitities, Analytics %s error %v", klog.KObj(analytics), err)
-			klog.Errorf(msg)
+			klog.Error(msg)
 			setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
 			c.UpdateStatus(ctx, analytics, newStatus)
 			return false
@@ -142,7 +141,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 			msg := fmt.Sprintf("Failed to get recomendations, Analytics %s error %v", klog.KObj(analytics), err)
-			klog.Errorf(msg)
+			klog.Error(msg)
 			setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
 			c.UpdateStatus(ctx, analytics, newStatus)
 			return false

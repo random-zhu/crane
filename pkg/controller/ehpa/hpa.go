@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -114,13 +114,16 @@ func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autosca
 			APIVersion: "autoscaling.crane.io/v1alpha1",
 		}
 	} else if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyAuto {
-		hpa.Spec.ScaleTargetRef = ehpa.Spec.ScaleTargetRef
+		hpa.Spec.ScaleTargetRef = utils.CrossVersionObjectReferenceToV2(ehpa.Spec.ScaleTargetRef)
 	}
 
 	var behavior *autoscalingv2.HorizontalPodAutoscalerBehavior
 	// Behavior works in k8s version > 1.18
 	if c.K8SVersion.Minor() >= 18 && ehpa.Spec.Behavior != nil {
-		behavior = ehpa.Spec.Behavior
+		behavior, err = utils.HPABehaviorToV2(ehpa.Spec.Behavior)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		behavior = nil
 	}
@@ -196,10 +199,9 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 
 // GetHPAMetrics loop metricSpec in EffectiveHorizontalPodAutoscaler and generate metricSpec for HPA
 func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, tsp *predictionapi.TimeSeriesPrediction) ([]autoscalingv2.MetricSpec, error) {
-	var metrics []autoscalingv2.MetricSpec
-	for _, metric := range ehpa.Spec.Metrics {
-		copyMetric := metric.DeepCopy()
-		metrics = append(metrics, *copyMetric)
+	metrics, err := utils.MetricSpecsToV2(ehpa.Spec.Metrics)
+	if err != nil {
+		return nil, err
 	}
 
 	if utils.IsEHPAPredictionEnabled(ehpa) {
@@ -232,7 +234,8 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
 				if averageUtilization != nil {
 					metricName := utils.GetMetricName(metric)
-					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
+					scaleTargetRef := utils.CrossVersionObjectReferenceToV2(ehpa.Spec.ScaleTargetRef)
+					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, scaleTargetRef)
 					if err != nil {
 						return nil, err
 					}
