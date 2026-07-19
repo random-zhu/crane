@@ -2,7 +2,7 @@ import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
 import { Card } from 'components/common/Card';
-import { FilterableSelect } from 'components/common/FilterableSelect';
+import { FilterableSelect, hasSelectOption } from 'components/common/FilterableSelect';
 import { useCraneUrl, useSelector } from 'hooks';
 import { insightAction } from 'modules/insightSlice';
 import React from 'react';
@@ -43,7 +43,7 @@ export const InsightSearchPanel = React.memo(() => {
     ],
     [namespaceList?.data?.data?.items],
   );
-  const isSelectedNamespaceAvailable = namespaceOptions.some(({ value }) => value === selectedNamespace);
+  const isSelectedNamespaceAvailable = hasSelectOption(namespaceOptions, selectedNamespace);
 
   const workloadTypeList = useFetchSeriesListQuery(
     {

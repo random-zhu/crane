@@ -3,6 +3,13 @@ import { Select } from 'tdesign-react';
 
 type FilterableSelectProps = React.ComponentProps<typeof Select>;
 
+export function hasSelectOption<Value>(
+  options: ReadonlyArray<{ value?: Value }> | undefined,
+  value: Value | undefined,
+): boolean {
+  return value !== undefined && Boolean(options?.some(({ value: optionValue }) => optionValue === value));
+}
+
 export const FilterableSelect = React.forwardRef<HTMLDivElement, FilterableSelectProps>(
   ({ options, onVisibleChange, ...props }, ref) => {
     const [optionsRevision, refreshOptions] = React.useReducer((revision) => revision + 1, 0);
