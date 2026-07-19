@@ -2,6 +2,7 @@ import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
 import { Card } from 'components/common/Card';
+import { FilterableSelect } from 'components/common/FilterableSelect';
 import { useCraneUrl, useSelector } from 'hooks';
 import { insightAction } from 'modules/insightSlice';
 import React from 'react';
@@ -46,6 +47,7 @@ export const OverviewSearchPanel = React.memo(() => {
     ],
     [namespaceList?.data?.data?.items],
   );
+  const isSelectedNamespaceAvailable = namespaceOptions.some(({ value }) => value === selectedNamespace);
 
   const workloadTypeList = useFetchSeriesListQuery(
     {
@@ -106,10 +108,17 @@ export const OverviewSearchPanel = React.memo(() => {
   }, [workloadList.data]);
 
   React.useEffect(() => {
-    if (namespaceList.isSuccess && isNeedSelectNamespace && namespaceOptions?.[0]?.value) {
+    if (
+      namespaceList.isSuccess &&
+      isNeedSelectNamespace &&
+      namespaceOptions?.[0]?.value &&
+      !isSelectedNamespaceAvailable
+    ) {
       dispatch(insightAction.selectedNamespace(namespaceOptions[0].value));
+      dispatch(insightAction.selectedWorkloadType(undefined));
+      dispatch(insightAction.selectedWorkload(undefined));
     }
-  }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
+  }, [dispatch, isNeedSelectNamespace, isSelectedNamespaceAvailable, namespaceList.isSuccess, namespaceOptions]);
 
   React.useEffect(() => {
     if (workloadTypeList.isSuccess && workloadTypeOptions?.[0]?.value) {
@@ -137,7 +146,7 @@ export const OverviewSearchPanel = React.memo(() => {
           }}
         >
           <div style={{ marginRight: '1rem', width: '80px' }}>{t('命名空间')}</div>
-          <Select
+          <FilterableSelect
             options={namespaceOptions}
             placeholder={t('命名空间')}
             filterable

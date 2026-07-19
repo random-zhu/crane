@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Button, Col, Form, Input, Row, Select } from 'tdesign-react';
 import _ from 'lodash';
 import { useTranslation } from 'react-i18next';
+import { FilterableSelect } from 'components/common/FilterableSelect';
 
 const { FormItem } = Form;
 
@@ -44,7 +45,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
               </Col>
               <Col>
                 <FormItem label={t('Namespace')} name='namespace' style={{ margin: '0px 10px' }}>
-                  <Select
+                  <FilterableSelect
                     options={nameSpaceOptions}
                     placeholder={t('请选择Namespace')}
                     filterable

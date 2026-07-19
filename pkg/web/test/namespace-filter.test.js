@@ -65,3 +65,31 @@ test('FilterableSelect refreshes complete options when reopened', () => {
   assert.equal(getRefreshCount(), 1);
   assert.deepEqual(visibility, [true, false]);
 });
+
+const integrations = [
+  'src/pages/Cost/WorkloadOverview/OverviewSearchPanel.tsx',
+  'src/pages/Cost/WorkloadInsight/InsightSearchPanel.tsx',
+  'src/pages/Recommend/ReplicaRecommend/components/SearchForm.tsx',
+];
+
+test('all affected Namespace controls use FilterableSelect', () => {
+  for (const relativePath of integrations) {
+    const source = fs.readFileSync(path.join(webRoot, relativePath), 'utf8');
+    assert.match(source, /import \{ FilterableSelect \} from ['"]components\/common\/FilterableSelect['"]/);
+    assert.equal((source.match(/<FilterableSelect/g) ?? []).length, 1, relativePath);
+  }
+});
+
+test('Cost Namespace defaults preserve valid selections and reset dependents when replaced', () => {
+  for (const relativePath of integrations.slice(0, 2)) {
+    const source = fs.readFileSync(path.join(webRoot, relativePath), 'utf8');
+    const namespaceEffect = source.match(
+      /React\.useEffect\(\(\) => \{([\s\S]*?!isSelectedNamespaceAvailable[\s\S]*?)\n  \}, \[/,
+    )?.[1];
+
+    assert.ok(namespaceEffect, relativePath);
+    assert.match(namespaceEffect, /dispatch\(insightAction\.selectedNamespace\(namespaceOptions\[0\]\.value\)\);/);
+    assert.match(namespaceEffect, /dispatch\(insightAction\.selectedWorkloadType\(undefined\)\);/);
+    assert.match(namespaceEffect, /dispatch\(insightAction\.selectedWorkload\(undefined\)\);/);
+  }
+});
