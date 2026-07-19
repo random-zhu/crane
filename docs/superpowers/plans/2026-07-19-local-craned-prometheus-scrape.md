@@ -124,3 +124,71 @@ Expected: the first query includes `Deployment`, and the second lists workload n
 git add examples/prometheus-local-values.yaml
 git commit -m "chore: scrape local craned metrics"
 ```
+
+### Task 2: Correct Workload Pods Insight Pod Matching
+
+**Files:**
+- Modify: `pkg/web/test/dashboard-promql.test.js`
+- Modify: `pkg/web/values.yaml`
+
+**Interfaces:**
+- Consumes: Grafana variables `$Namespace`, `$WorkloadType`, and `$Workload`
+- Produces: Workload Pods Insight recommendation queries that count pods for the selected workload
+
+- [ ] **Step 1: Add a failing dashboard regression test**
+
+Add a test that parses `dashboards.default['workload-insight']`, selects the
+recommendation targets from panels titled `Workload Pods Insight`, and asserts
+that both use `pod=~"^$Workload-.*$"` without containing `crane-scheduler`.
+
+- [ ] **Step 2: Run the focused test and verify the failure**
+
+Run:
+
+```bash
+node --test pkg/web/test/dashboard-promql.test.js
+```
+
+Expected: the new test fails and reports the two hard-coded recommendation expressions.
+
+- [ ] **Step 3: Replace the hard-coded pod matchers**
+
+In both Workload Pods Insight recommendation targets, replace:
+
+```promql
+count(kube_pod_info{namespace="$Namespace",pod=~"^crane-scheduler-.*$",})
+```
+
+with:
+
+```promql
+count(kube_pod_info{namespace="$Namespace",pod=~"^$Workload-.*$"})
+```
+
+- [ ] **Step 4: Run the dashboard regression tests**
+
+Run:
+
+```bash
+node --test pkg/web/test/dashboard-promql.test.js
+```
+
+Expected: all dashboard tests pass.
+
+- [ ] **Step 5: Upgrade Grafana and verify the live dashboard query**
+
+Run:
+
+```bash
+helm upgrade grafana grafana/grafana \
+  --namespace crane-system \
+  --reuse-values \
+  -f pkg/web/values.yaml \
+  --wait \
+  --timeout 5m
+```
+
+Expected: release `grafana` reports `STATUS: deployed`. The provisioned
+`workload-insight` dashboard contains `$Workload` in both pod-count expressions,
+and the expression returns a recommendation value for `grafana` in
+`crane-system`.

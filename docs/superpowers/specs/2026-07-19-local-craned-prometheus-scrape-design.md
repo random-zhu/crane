@@ -16,8 +16,15 @@ Add a local-only Prometheus scrape job to
 maps to the host where Craned runs.
 
 The configuration remains in the existing local values file so production and
-generic chart defaults are unchanged. Existing Grafana dashboards and queries
-remain unchanged because they already consume the correct Crane metric.
+generic chart defaults are unchanged.
+
+## Pods Insight Query Correction
+
+The Workload Pods Insight recommendation targets currently count pods with a
+hard-coded `crane-scheduler` name. Replace that pod matcher with `$Workload` so
+the recommendation line follows the dashboard selection. Keep the change
+limited to the two affected recommendation targets; do not alter the duplicate
+panel layout or saved variable defaults.
 
 ## Data Flow
 
@@ -40,3 +47,7 @@ the next scrape without changing the configuration.
 - Confirm the `craned` target reports `up`.
 - Confirm `crane_analysis_resource_recommendation` returns workload series.
 - Confirm the dashboard variable query returns `Deployment` and workload names.
+- Run the dashboard PromQL regression test and confirm Pods Insight recommendation
+  targets use `$Workload` rather than a specific workload name.
+- Provision the updated dashboard and confirm the corrected query returns a
+  recommendation value for a workload in the local kind cluster.
