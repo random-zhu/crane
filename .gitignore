@@ -25,3 +25,5 @@ site/public
 site/.hugo_build.lock
 site/node_modules
 site/package-lock.json
+
+.worktrees/
