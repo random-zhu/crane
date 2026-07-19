@@ -1,0 +1,11 @@
+# Enable node label metrics required by the bundled Grafana dashboards.
+kube-state-metrics:
+  metricLabelsAllowlist:
+    - nodes=[*]
+
+# Scrape the Craned process running on the host from the local kind cluster.
+scrapeConfigs:
+  craned:
+    static_configs:
+      - targets:
+          - host.docker.internal:8080
