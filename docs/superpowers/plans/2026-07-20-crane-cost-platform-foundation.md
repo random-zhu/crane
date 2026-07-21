@@ -1,5 +1,10 @@
 # Crane Cost Platform Foundation Implementation Plan
 
+> **Superseded on 2026-07-21:** Do not execute this plan. The approved
+> [Crane OpenCost C/S FinOps platform design](../specs/2026-07-21-crane-opencost-cs-finops-platform-design.md)
+> replaces the standalone `crane-cost` topology with a central modular
+> `crane-server`. A new Phase 1 C/S foundation plan will replace this document.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the single-process file-only cost ledger with a publish-on-complete MySQL-backed foundation, durable collection leases, raw-artifact archival, and a two-replica-ready `crane-cost` service while preserving the existing cost APIs and four domestic cloud providers.

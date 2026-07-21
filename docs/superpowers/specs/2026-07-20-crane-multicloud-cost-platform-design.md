@@ -1,5 +1,10 @@
 # Crane 多云成本平台设计
 
+> **已部分取代（2026-07-21）：** 本文关于独立 `crane-cost` 服务、运行拓扑和
+> Phase 1 至 Phase 4 交付顺序的决策，已由
+> [Crane OpenCost C/S FinOps 平台设计](./2026-07-21-crane-opencost-cs-finops-platform-design.md)
+> 取代。精确金额、多云 Provider、账单修订、对象归档和对账要求继续有效。
+
 ## 1. 背景与结论
 
 本文设计一套以 Crane 为统一产品入口和优化控制面的多云成本系统。系统面向企业内部最多 50 个 Kubernetes 集群、20 个云账号，覆盖 AWS、Azure、GCP、阿里云、腾讯云、华为云和火山引擎。
