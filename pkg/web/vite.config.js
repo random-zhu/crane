@@ -57,13 +57,14 @@ export default (params) => ({
         // 用于开发环境下的转发请求
         // 更多请参考：https://vitejs.dev/config/#server-proxy
         // Set to your craned address
-        target: 'http://localhost:9090',
+        target: 'http://127.0.0.1:8082',
         changeOrigin: true,
       },
       '/grafana': {
         // Set to your craned address
-        target: 'http://localhost:9090',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/grafana/, ''),
       },
     },
   },

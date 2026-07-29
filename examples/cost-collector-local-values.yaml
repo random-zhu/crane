@@ -1,0 +1,47 @@
+# Local kind-only cost collector configuration.
+# The provider endpoint is intentionally unreachable: this starts the service
+# and exposes configured node rates without making cloud API calls.
+image:
+  repository: crane/cost-collector
+  tag: local
+  pullPolicy: IfNotPresent
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "8080"
+
+credentials:
+  existingSecret: crane-cost-credentials
+  items:
+    - key: api_token
+      path: api/token
+    - key: aliyun_access_key_id
+      path: aliyun/access_key_id
+    - key: aliyun_access_key_secret
+      path: aliyun/access_key_secret
+  optionalItems: []
+
+config:
+  listenAddress: :8080
+  dataFile: /var/lib/crane-cost/ledger.json
+  pullInterval: 24h
+  lookbackDays: 1
+  maxPages: 1
+  providers:
+    - name: aliyun
+      accountId: local
+      endpoint: http://127.0.0.1:9
+      credentialFileDirectory: /var/run/secrets/crane-cost/aliyun
+  resourceMappings: []
+  nodeRates:
+    - node: crane-test-control-plane
+      provider: aliyun
+      accountId: local
+      clusterId: kind-crane-test
+      region: local
+      instanceType: kind
+      currency: USD
+      totalHourlyCost: "0.10"
+      cpuCoreHourlyCost: "0.05"
+      ramGiBHourlyCost: "0.01"
